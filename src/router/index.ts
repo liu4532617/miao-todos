@@ -7,11 +7,11 @@ import { backendRoutesToRecords } from './dynamicRoutes'
  * 保证路由器创建时就带有完整的路由表
  */
 export async function setupAndGetRouter() {
-  const config = await fetchRouteConfig()
-  const routes = backendRoutesToRecords(config)
+    const config = await fetchRouteConfig()
+    const routes = backendRoutesToRecords(config)
 
-  return createRouter({
-    history: createWebHistory(),
-    routes,
-  })
+    return createRouter({
+        history: createWebHistory(),
+        routes,
+    })
 }

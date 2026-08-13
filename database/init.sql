@@ -347,4 +347,19 @@ INSERT INTO `sys_menu` (`id`, `parent_id`, `name`, `icon`, `path`, `component`, 
 (12, 3,    '权限管理',   NULL, '/system/permission', 'system/permission/index', 2, 3, 1),
 (13, 3,    '菜单资源',   NULL, '/system/menu',       'system/menu/index',      2, 4, 1);
 
+-- ----------------------------
+-- 角色-菜单关联（决定各角色可见菜单）
+-- ----------------------------
+-- 超级管理员：全部菜单 (1-13)
+INSERT INTO `sys_role_menu` (`role_id`, `menu_id`) VALUES
+(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10), (1, 11), (1, 12), (1, 13);
+
+-- 销售经理：工作台 + 业务管理（客户/线索/任务/知识库/订单/产品）
+INSERT INTO `sys_role_menu` (`role_id`, `menu_id`) VALUES
+(2, 1), (2, 2), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (2, 9);
+
+-- 销售员：工作台 + 客户/线索/任务
+INSERT INTO `sys_role_menu` (`role_id`, `menu_id`) VALUES
+(3, 1), (3, 2), (3, 4), (3, 5), (3, 6);
+
 

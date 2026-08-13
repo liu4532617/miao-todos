@@ -15,36 +15,26 @@
         active-text-color="#ffffff"
         router
       >
-        <!-- 工作台 -->
-        <el-menu-item index="/">
-          <el-icon><Odometer /></el-icon>
-          <span>工作台</span>
+        <!-- 无分组菜单（如 工作台）直接展示 -->
+        <el-menu-item v-for="item in topLevelItems" :key="item.path" :index="'/' + item.path">
+          <el-icon v-if="item.meta?.icon">
+            <component :is="resolveIcon(item.meta.icon)" />
+          </el-icon>
+          <span>{{ item.meta?.title }}</span>
         </el-menu-item>
 
-        <!-- 业务模块 -->
-        <el-sub-menu index="business">
+        <!-- 按目录分组（如 业务管理 / 系统管理） -->
+        <el-sub-menu v-for="group in groups" :key="group" :index="group">
           <template #title>
-            <el-icon><Briefcase /></el-icon>
-            <span>业务管理</span>
+            <span>{{ group }}</span>
           </template>
-          <el-menu-item index="/customer">客户管理</el-menu-item>
-          <el-menu-item index="/clue">线索管理</el-menu-item>
-          <el-menu-item index="/task-list">任务管理</el-menu-item>
-          <el-menu-item index="/knowledge">知识库</el-menu-item>
-          <el-menu-item index="/order">订单管理</el-menu-item>
-          <el-menu-item index="/product">产品管理</el-menu-item>
-        </el-sub-menu>
-
-        <!-- 系统管理 -->
-        <el-sub-menu index="system">
-          <template #title>
-            <el-icon><Setting /></el-icon>
-            <span>系统管理</span>
-          </template>
-          <el-menu-item index="/system/user">用户管理</el-menu-item>
-          <el-menu-item index="/system/role">角色管理</el-menu-item>
-          <el-menu-item index="/system/permission">权限管理</el-menu-item>
-          <el-menu-item index="/system/menu">菜单资源</el-menu-item>
+          <el-menu-item
+            v-for="item in groupedItems[group]"
+            :key="item.path"
+            :index="'/' + item.path"
+          >
+            <span>{{ item.meta?.title }}</span>
+          </el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-aside>
@@ -85,14 +75,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  Odometer,
-  Briefcase,
-  Setting,
-  Fold,
-  Expand,
-  UserFilled,
-} from '@element-plus/icons-vue'
+import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import type { Component } from 'vue'
+import type { BackendRouteRecord } from '../../types/route'
 
 const route = useRoute()
 const router = useRouter()
@@ -108,8 +93,53 @@ function toggleCollapse() {
 /** 当前高亮的菜单项 */
 const activeMenu = computed(() => route.path)
 
+/** 从路由表取出 layout 的子路由（即后端菜单生成的路由） */
+const layoutChildren = computed<BackendRouteRecord[]>(() => {
+  const layout = router.options.routes.find((r) => r.path === '/')
+  return ((layout?.children ?? []) as unknown) as BackendRouteRecord[]
+})
+
+/** 无分组菜单（工作台等一级页面） */
+const topLevelItems = computed(() =>
+  layoutChildren.value.filter((item) => !item.meta?.group),
+)
+
+/** 所有分组名（业务管理 / 系统管理 等），保持原有顺序 */
+const groups = computed(() => {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const item of layoutChildren.value) {
+    const group = item.meta?.group
+    if (typeof group === 'string' && !seen.has(group)) {
+      seen.add(group)
+      result.push(group)
+    }
+  }
+  return result
+})
+
+/** 按分组归类：{ 业务管理: [路由...], 系统管理: [路由...] } */
+const groupedItems = computed<Record<string, BackendRouteRecord[]>>(() => {
+  const map: Record<string, BackendRouteRecord[]> = {}
+  for (const item of layoutChildren.value) {
+    const group = item.meta?.group
+    if (typeof group === 'string') {
+      ;(map[group] ??= []).push(item)
+    }
+  }
+  return map
+})
+
+/** 根据图标名解析 Element Plus 图标组件（如 'Odometer' → <Odometer />） */
+function resolveIcon(name: unknown): Component | undefined {
+  if (typeof name !== 'string' || !name) return undefined
+  const icons = ElementPlusIconsVue as Record<string, Component>
+  return icons[name]
+}
+
 /** 退出登录 */
 function handleLogout() {
+  localStorage.removeItem('token')
   router.push('/login')
 }
 </script>

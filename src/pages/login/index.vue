@@ -37,11 +37,10 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
 import { User, Lock } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-
-const router = useRouter()
+import { loginApi } from '../../api/auth'
 
 /** 登录表单数据 */
 const form = reactive({
@@ -68,10 +67,14 @@ async function handleLogin() {
 
   loading.value = true
   try {
-    // TODO: 对接真实登录接口
-    // await loginApi(form.username, form.password)
-    localStorage.setItem('token', 'mock-token')
-    router.push('/')
+    // 对接真实登录接口：成功后保存 token
+    const res = await loginApi({ username: form.username, password: form.password })
+    localStorage.setItem('token', res.token)
+
+    ElMessage.success('登录成功')
+    // 跳转首页并重新加载：此时 token 已保存，bootstrap 重新执行，
+    // /sys/menu/menus 能带上 token 返回真实菜单，路由表按用户角色动态构建
+    window.location.href = '/'
   } catch {
     // 登录失败由拦截器统一处理
   } finally {

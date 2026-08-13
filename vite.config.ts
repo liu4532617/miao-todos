@@ -8,9 +8,9 @@ export default defineConfig({
     server: {
         proxy: {
             '/api': {
-                target: 'http://localhost:3000',
+                // 后端 Spring Boot 服务地址（接口自带 /api 前缀，无需 rewrite）
+                target: 'http://localhost:8080',
                 changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api/, ''),
             },
         },
     },
