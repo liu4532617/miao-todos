@@ -15,36 +15,21 @@
         active-text-color="#ffffff"
         router
       >
-        <!-- 工作台 -->
-        <el-menu-item index="/">
-          <el-icon><Odometer /></el-icon>
-          <span>工作台</span>
+        <!-- 动态菜单：无分组的顶层菜单项 -->
+        <el-menu-item v-for="item in topItems" :key="item.name" :index="menuPath(item)">
+          <el-icon><component :is="iconFor(item)" /></el-icon>
+          <span>{{ item.meta?.title }}</span>
         </el-menu-item>
 
-        <!-- 业务模块 -->
-        <el-sub-menu index="business">
+        <!-- 动态菜单：按 meta.group 分组的子菜单 -->
+        <el-sub-menu v-for="(items, group) in groupedItems" :key="group" :index="group">
           <template #title>
-            <el-icon><Briefcase /></el-icon>
-            <span>业务管理</span>
+            <el-icon><component :is="iconForGroup(group)" /></el-icon>
+            <span>{{ group }}</span>
           </template>
-          <el-menu-item index="/customer">客户管理</el-menu-item>
-          <el-menu-item index="/clue">线索管理</el-menu-item>
-          <el-menu-item index="/task-list">任务管理</el-menu-item>
-          <el-menu-item index="/knowledge">知识库</el-menu-item>
-          <el-menu-item index="/order">订单管理</el-menu-item>
-          <el-menu-item index="/product">产品管理</el-menu-item>
-        </el-sub-menu>
-
-        <!-- 系统管理 -->
-        <el-sub-menu index="system">
-          <template #title>
-            <el-icon><Setting /></el-icon>
-            <span>系统管理</span>
-          </template>
-          <el-menu-item index="/system/user">用户管理</el-menu-item>
-          <el-menu-item index="/system/role">角色管理</el-menu-item>
-          <el-menu-item index="/system/permission">权限管理</el-menu-item>
-          <el-menu-item index="/system/menu">菜单资源</el-menu-item>
+          <el-menu-item v-for="item in items" :key="item.name" :index="menuPath(item)">
+            <span>{{ item.meta?.title }}</span>
+          </el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-aside>
@@ -83,16 +68,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   Odometer,
   Briefcase,
   Setting,
+  Folder,
   Fold,
   Expand,
   UserFilled,
 } from '@element-plus/icons-vue'
+import type { BackendRouteRecord } from '../../types/route'
+import { fetchRouteConfig } from '../../api/routes'
 
 const route = useRoute()
 const router = useRouter()
@@ -112,6 +100,49 @@ const activeMenu = computed(() => route.path)
 function handleLogout() {
   router.push('/login')
 }
+
+/* ========== 动态菜单（数据来自后端 /api/routes） ========== */
+const menuItems = ref<BackendRouteRecord[]>([])
+
+/** 无分组的顶层菜单项（如工作台） */
+const topItems = computed(() => menuItems.value.filter((i) => !i.meta?.group))
+
+/** 按 meta.group 分组的子菜单 */
+const groupedItems = computed<Record<string, BackendRouteRecord[]>>(() => {
+  const map: Record<string, BackendRouteRecord[]> = {}
+  for (const item of menuItems.value) {
+    const group = item.meta?.group as string | undefined
+    if (group) {
+      ;(map[group] ??= []).push(item)
+    }
+  }
+  return map
+})
+
+/** child path 是相对路径，拼成菜单 index */
+function menuPath(item: BackendRouteRecord) {
+  return item.path ? `/${item.path}` : '/'
+}
+
+/** 菜单项图标（按名称匹配，缺省 Folder） */
+function iconFor(item: BackendRouteRecord) {
+  const title = item.meta?.title
+  if (title === '工作台') return Odometer
+  return Folder
+}
+
+/** 分组图标 */
+function iconForGroup(group: string) {
+  if (group === '业务管理') return Briefcase
+  if (group === '系统管理') return Setting
+  return Folder
+}
+
+onMounted(async () => {
+  const config = await fetchRouteConfig()
+  const layout = config.find((r) => r.name === 'layout')
+  menuItems.value = layout?.children ?? []
+})
 </script>
 
 <style scoped>
