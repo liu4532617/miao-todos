@@ -6,6 +6,8 @@ export default defineConfig({
     plugins: [vue()],
 
     server: {
+        host: '127.0.0.1',
+        allowedHosts: ['fastfoodhut.com', 'www.fastfoodhut.com'],
         proxy: {
             '/api': {
                 target: 'http://localhost:8080',
